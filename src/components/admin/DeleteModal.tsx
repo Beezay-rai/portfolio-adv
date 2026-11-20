@@ -10,7 +10,7 @@ interface DeleteModalProps {
   buttonClassName?: string;
   buttonText?: string;
   titleText?: string;
-  descriptionText?: string;
+  descriptionText?: React.ReactNode;
 }
 
 export function DeleteModal({

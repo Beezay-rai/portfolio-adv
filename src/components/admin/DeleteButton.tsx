@@ -18,6 +18,7 @@ export function DeleteButton({ resource, id, label }: { resource: string; id: st
       buttonClassName="btn-danger text-sm px-3 py-1.5 inline-flex items-center"
       buttonText="Delete"
       titleText="Delete record"
+      
       descriptionText={
         <>
           Are you sure you want to delete <span className="font-medium text-ink">&ldquo;{label}&rdquo;</span>? This action cannot be undone.

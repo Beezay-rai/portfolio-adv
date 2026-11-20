@@ -15,9 +15,10 @@ export function ConfirmDelete({ id, title }: { id: string; title: string }) {
       titleText="Remove anime"
       descriptionText={
         <>
-          Are you sure you want to remove <span className="font-medium text-ink">&ldquo;{title}&rdquo;</span> from your list?
+          Are you sure you want to remove <span className="font-medium text-ink">&ldquo;{title}&rdquo;</span>? This action cannot be undone.
         </>
       }
+      
     />
   );
 }
