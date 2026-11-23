@@ -16,9 +16,10 @@ export async function saveAnimeProgress(formData: FormData) {
   const title = String(formData.get("title") ?? "").trim();
   if (!title) throw new Error("Title is required");
 
-  const episode = Math.max(0, Number(formData.get("last_episode")) || 0);
   const anilistId = Number(formData.get("anilist_id")) || null;
   const total = Number(formData.get("total_episodes")) || null;
+  const episodeValue = Math.max(0, Number(formData.get("last_episode")) || 0);
+  const episode = total === null ? episodeValue : Math.min(episodeValue, total);
   const status = total && episode >= total ? "completed" : String(formData.get("status") || "watching");
 
   const shot = formData.get("screenshot");
@@ -49,13 +50,23 @@ export async function saveAnimeProgress(formData: FormData) {
 
 export async function updateAnime(formData: FormData) {
   const supabase = await requireUser();
+  const id = String(formData.get("id"));
+  const { data: anime, error: fetchError } = await supabase
+    .from("anime_watch")
+    .select("total_episodes")
+    .eq("id", id)
+    .single();
+  if (fetchError) throw new Error(fetchError.message);
+
+  const episodeValue = Math.max(0, Number(formData.get("last_episode")) || 0);
+  const lastEpisode = anime.total_episodes === null ? episodeValue : Math.min(episodeValue, anime.total_episodes);
   const { error } = await supabase
     .from("anime_watch")
     .update({
-      last_episode: Math.max(0, Number(formData.get("last_episode")) || 0),
+      last_episode: lastEpisode,
       status: String(formData.get("status")),
     })
-    .eq("id", String(formData.get("id")));
+    .eq("id", id);
   if (error) throw new Error(error.message);
   done();
 }
@@ -65,6 +76,9 @@ export async function incrementEpisode(formData: FormData) {
   const id = String(formData.get("id"));
   const { data } = await supabase.from("anime_watch").select("last_episode,total_episodes").eq("id", id).single();
   if (!data) return;
+  if (data.total_episodes !== null && data.last_episode >= data.total_episodes) {
+    done();
+  }
   const next = data.last_episode + 1;
   const finished = data.total_episodes !== null && next >= data.total_episodes;
   await supabase.from("anime_watch").update({ last_episode: next, ...(finished ? { status: "completed" } : {}) }).eq("id", id);

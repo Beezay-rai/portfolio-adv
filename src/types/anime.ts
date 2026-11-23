@@ -16,3 +16,13 @@ export interface Recognition {
   alternatives: AnimeMatch[];
   confident: boolean;
 }
+export interface AnimeSearchResult {
+  /** null when the user adds a title that AniList doesn't have */
+  anilistId: number | null;
+  title: string;
+  altTitle: string | null;
+  episodes: number | null;
+  format: string | null;
+  year: number | null;
+  coverUrl: string | null;
+}

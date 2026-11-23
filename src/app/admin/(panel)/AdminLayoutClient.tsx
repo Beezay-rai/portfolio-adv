@@ -17,9 +17,10 @@ export function AdminLayoutClient({ resources, logoutAction, children }: AdminSi
   return (
     <div className="flex min-h-screen bg-paper-light flex-col md:flex-row">
       {/* Mobile Top Bar */}
-      <div className="md:hidden flex items-center justify-between border-b border-line bg-white px-6 py-4 sticky top-0 z-40">
-        <Link href="/admin" className="font-display text-xl font-semibold text-ink">
-          Admin Panel
+      <div className="md:hidden flex items-center justify-between border-b border-line bg-white/90 px-6 py-4 sticky top-0 z-40 backdrop-blur">
+        <Link href="/admin" className="flex items-center gap-2 font-display text-xl font-semibold text-ink">
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-accent to-ink text-sm text-white shadow-sm">C</span>
+          Content Manager
         </Link>
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -48,20 +49,24 @@ export function AdminLayoutClient({ resources, logoutAction, children }: AdminSi
 
       {/* Sidebar */}
       <aside
-        className={`fixed md:sticky top-0 h-screen z-40 w-64 shrink-0 border-r border-line bg-white p-6 transition-transform duration-300 flex flex-col justify-between ${
+        className={`fixed md:sticky top-0 h-screen z-40 w-64 shrink-0 border-r border-line bg-gradient-to-b from-white via-white to-accent/5 p-6 shadow-sm transition-transform duration-300 flex flex-col justify-between ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
         }`}
       >
         <div>
           <div className="hidden md:block mb-8">
-            <Link href="/admin" className="font-display text-xl font-semibold text-ink">
-              Content Manager
+            <Link href="/admin" className="flex items-center gap-3 font-display text-xl font-semibold text-ink">
+              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-accent to-ink text-lg text-white shadow-md">C</span>
+              <span>
+                <span className="block">Content Manager</span>
+                <span className="mt-0.5 block font-sans text-[11px] font-medium uppercase tracking-[0.18em] text-ink-faint">Workspace</span>
+              </span>
             </Link>
           </div>
 
           <nav aria-label="Admin" className="mt-4 md:mt-0">
-            <ul className="space-y-1 text-sm">
-              
+            <p className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-faint">Manage</p>
+            <ul className="space-y-1.5 text-sm">
               {resources.map((r) => {
                 const isActive = pathname.startsWith(`/admin/${r.key}`);
                 return (
@@ -69,10 +74,10 @@ export function AdminLayoutClient({ resources, logoutAction, children }: AdminSi
                     <Link
                       href={`/admin/${r.key}`}
                       onClick={() => setSidebarOpen(false)}
-                      className={`block rounded px-3 py-2 transition-all duration-200 font-medium ${
+                      className={`relative block rounded-lg px-3 py-2.5 transition-all duration-200 font-medium ${
                         isActive
-                          ? "bg-accent/10 text-accent"
-                          : "hover:bg-ink/5 text-ink-soft hover:text-ink"
+                          ? "bg-accent/10 text-accent shadow-sm before:absolute before:left-0 before:top-2 before:h-5 before:w-1 before:rounded-r-full before:bg-accent"
+                          : "text-ink-soft hover:bg-white/80 hover:text-ink"
                       }`}
                     >
                       {r.label}
@@ -80,17 +85,27 @@ export function AdminLayoutClient({ resources, logoutAction, children }: AdminSi
                   </li>
                 );
               })}
-                <li>
-              <Link href="/admin/anime" className="block rounded px-2 py-1.5 hover:bg-ink/5">Anime tracker</Link>
-            </li>
+              <li>
+                <Link
+                  href="/admin/anime"
+                  onClick={() => setSidebarOpen(false)}
+                  className={`relative block rounded-lg px-3 py-2.5 font-medium transition-all duration-200 ${
+                    pathname.startsWith("/admin/anime")
+                      ? "bg-accent/10 text-accent shadow-sm before:absolute before:left-0 before:top-2 before:h-5 before:w-1 before:rounded-r-full before:bg-accent"
+                      : "text-ink-soft hover:bg-white/80 hover:text-ink"
+                  }`}
+                >
+                  Anime tracker
+                </Link>
+              </li>
               <li>
                 <Link
                   href="/admin/settings"
                   onClick={() => setSidebarOpen(false)}
-                  className={`block rounded px-3 py-2 transition-all duration-200 font-medium ${
+                  className={`relative block rounded-lg px-3 py-2.5 transition-all duration-200 font-medium ${
                     pathname.startsWith("/admin/settings")
-                      ? "bg-accent/10 text-accent"
-                      : "hover:bg-ink/5 text-ink-soft hover:text-ink"
+                    ? "bg-accent/10 text-accent shadow-sm before:absolute before:left-0 before:top-2 before:h-5 before:w-1 before:rounded-r-full before:bg-accent"
+                    : "text-ink-soft hover:bg-white/80 hover:text-ink"
                   }`}
                 >
                   Site Settings
@@ -100,7 +115,7 @@ export function AdminLayoutClient({ resources, logoutAction, children }: AdminSi
           </nav>
         </div>
 
-        <div className="space-y-3 border-t border-line pt-6 text-sm">
+        <div className="space-y-3 rounded-xl border border-line/70 bg-white/70 p-3 text-sm shadow-sm">
           <Link
             href="/"
             target="_blank"

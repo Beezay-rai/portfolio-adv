@@ -1,5 +1,8 @@
 -- Create site_settings table
-CREATE TABLE IF NOT EXISTS site_settings (
+CREATE SCHEMA IF NOT EXISTS portfolio;
+GRANT USAGE ON SCHEMA portfolio TO anon, authenticated, service_role;
+
+CREATE TABLE IF NOT EXISTS portfolio.site_settings (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL DEFAULT 'Your Name',
   role TEXT NOT NULL DEFAULT 'Full-stack developer',
@@ -13,12 +16,12 @@ CREATE TABLE IF NOT EXISTS site_settings (
 );
 
 -- Insert default settings if table is empty
-INSERT INTO site_settings (name, role, tagline, bio, email, socials, url)
+INSERT INTO portfolio.site_settings (name, role, tagline, bio, email, socials, url)
 SELECT 'Your Name', 'Full-stack developer', 'I build fast, accessible web products.', 'Write a short intro here. It appears on the home page hero.', 'you@example.com', '[]'::jsonb, 'http://localhost:3000'
-WHERE NOT EXISTS (SELECT 1 FROM site_settings);
+WHERE NOT EXISTS (SELECT 1 FROM portfolio.site_settings);
 
 -- Create updated_at trigger
-CREATE OR REPLACE FUNCTION update_updated_at_column()
+CREATE OR REPLACE FUNCTION portfolio.update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
   NEW.updated_at = NOW();
@@ -26,22 +29,24 @@ BEGIN
 END;
 $$ language 'plpgsql';
 
-DROP TRIGGER IF EXISTS update_site_settings_updated_at ON site_settings;
+DROP TRIGGER IF EXISTS update_site_settings_updated_at ON portfolio.site_settings;
 CREATE TRIGGER update_site_settings_updated_at
-  BEFORE UPDATE ON site_settings
-  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+  BEFORE UPDATE ON portfolio.site_settings
+  FOR EACH ROW EXECUTE FUNCTION portfolio.update_updated_at_column();
 
 -- Enable RLS
-ALTER TABLE site_settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE portfolio.site_settings ENABLE ROW LEVEL SECURITY;
 
 -- Policy: Allow public read access
-CREATE POLICY "Allow public read access to site_settings" ON site_settings
+CREATE POLICY "Allow public read access to site_settings" ON portfolio.site_settings
   FOR SELECT USING (true);
 
 -- Policy: Only authenticated users can update
-CREATE POLICY "Allow authenticated users to update site_settings" ON site_settings
+CREATE POLICY "Allow authenticated users to update site_settings" ON portfolio.site_settings
   FOR UPDATE USING (auth.role() = 'authenticated');
 
 -- Policy: Only authenticated users can insert
-CREATE POLICY "Allow authenticated users to insert site_settings" ON site_settings
+CREATE POLICY "Allow authenticated users to insert site_settings" ON portfolio.site_settings
   FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE portfolio.site_settings TO anon, authenticated;

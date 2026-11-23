@@ -2,12 +2,16 @@
 
 create extension if not exists "pgcrypto";
 
-create or replace function set_updated_at() returns trigger as $$
+create schema if not exists portfolio;
+
+grant usage on schema portfolio to anon, authenticated, service_role;
+
+create or replace function portfolio.set_updated_at() returns trigger as $$
 begin new.updated_at = now(); return new; end;
 $$ language plpgsql;
 
 -- ───────── Tables ─────────
-create table if not exists experiences (
+create table if not exists portfolio.experiences (
   id uuid primary key default gen_random_uuid(),
   company text not null,
   role text not null,
@@ -22,7 +26,7 @@ create table if not exists experiences (
   updated_at timestamptz not null default now()
 );
 
-create table if not exists education (
+create table if not exists portfolio.education (
   id uuid primary key default gen_random_uuid(),
   institution text not null,
   degree text not null,
@@ -35,7 +39,7 @@ create table if not exists education (
   updated_at timestamptz not null default now()
 );
 
-create table if not exists projects (
+create table if not exists portfolio.projects (
   id uuid primary key default gen_random_uuid(),
   title text not null,
   slug text not null unique,
@@ -52,7 +56,7 @@ create table if not exists projects (
   updated_at timestamptz not null default now()
 );
 
-create table if not exists posts (
+create table if not exists portfolio.posts (
   id uuid primary key default gen_random_uuid(),
   title text not null,
   slug text not null unique,
@@ -70,24 +74,29 @@ do $$
 declare t text;
 begin
   foreach t in array array['experiences','education','projects','posts'] loop
-    execute format('drop trigger if exists %I_updated on %I', t, t);
-    execute format('create trigger %I_updated before update on %I for each row execute function set_updated_at()', t, t);
-    execute format('alter table %I enable row level security', t);
+      execute format('drop trigger if exists %I_updated on portfolio.%I', t, t);
+      execute format('create trigger %I_updated before update on portfolio.%I for each row execute function portfolio.set_updated_at()', t, t);
+      execute format('alter table portfolio.%I enable row level security', t);
   end loop;
 end $$;
 
 -- ───────── Row Level Security ─────────
 -- Public: read experiences/education, and only *published* projects/posts.
 -- Authenticated (you): full access. Disable public sign-ups in Auth settings!
-create policy "public read experiences" on experiences for select using (true);
-create policy "public read education"   on education   for select using (true);
-create policy "public read projects"    on projects    for select using (published or auth.role() = 'authenticated');
-create policy "public read posts"       on posts       for select using (published or auth.role() = 'authenticated');
+  create policy "public read experiences" on portfolio.experiences for select using (true);
+  create policy "public read education"   on portfolio.education   for select using (true);
+  create policy "public read projects"    on portfolio.projects    for select using (published or auth.role() = 'authenticated');
+  create policy "public read posts"       on portfolio.posts       for select using (published or auth.role() = 'authenticated');
 
-create policy "admin write experiences" on experiences for all to authenticated using (true) with check (true);
-create policy "admin write education"   on education   for all to authenticated using (true) with check (true);
-create policy "admin write projects"    on projects    for all to authenticated using (true) with check (true);
-create policy "admin write posts"       on posts       for all to authenticated using (true) with check (true);
+  create policy "admin write experiences" on portfolio.experiences for all to authenticated using (true) with check (true);
+  create policy "admin write education"   on portfolio.education   for all to authenticated using (true) with check (true);
+  create policy "admin write projects"    on portfolio.projects    for all to authenticated using (true) with check (true);
+  create policy "admin write posts"       on portfolio.posts       for all to authenticated using (true) with check (true);
+
+  grant select, insert, update, delete on all tables in schema portfolio to anon, authenticated;
+  grant usage, select on all sequences in schema portfolio to anon, authenticated;
+  alter default privileges in schema portfolio grant select, insert, update, delete on tables to anon, authenticated;
+  alter default privileges in schema portfolio grant usage, select on sequences to anon, authenticated;
 
 -- ───────── Storage (images) ─────────
 insert into storage.buckets (id, name, public)

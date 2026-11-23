@@ -10,7 +10,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const settings = await getSiteSettings();
 
   const metadata: Metadata = {
-    metadataBase: new URL(settings.url),
+    metadataBase: new URL(settings.url ?? "http://localhost:3000"),
     title: {
       default: `${settings.name} – ${settings.role}`,
       template: `%s – ${settings.name}`,

@@ -1,4 +1,5 @@
 import { incrementEpisode, updateAnime } from "@/actions/anime";
+import { AnimeSearch } from "@/components/admin/AnimeSearch";
 import { AnimeUploader } from "@/components/admin/AnimeUploader";
 import { ConfirmDelete } from "@/components/admin/ConfirmDelete";
 import { createClient } from "@/lib/supabase/server";
@@ -12,12 +13,18 @@ export default async function AnimePage() {
   const { data } = await supabase.from("anime_watch").select("*").order("updated_at", { ascending: false });
   const list = (data ?? []) as AnimeEntry[];
 
+  // Changes after every save, so the forms below reset themselves.
+  const refreshKey = list[0] ? `${list[0].id}-${list[0].updated_at}` : "empty";
+
   return (
     <>
       <h1 className="text-2xl font-semibold">Anime tracker</h1>
       <p className="mb-6 mt-1 text-sm text-ink-soft">Upload a screenshot of where you stopped. The show and episode are filled in for you.</p>
 
-      <div className="max-w-3xl"><AnimeUploader /></div>
+      <div className="max-w-3xl space-y-6">
+        <AnimeUploader key={`u-${refreshKey}`} />
+        <AnimeSearch key={`s-${refreshKey}`} />
+      </div>
 
       <h2 className="mb-4 mt-10 text-lg font-semibold">Your list</h2>
       {list.length === 0 ? (
@@ -39,7 +46,7 @@ export default async function AnimePage() {
                   <form action={updateAnime} className="flex items-center gap-2">
                     <input type="hidden" name="id" value={a.id} />
                     <label className="sr-only" htmlFor={`ep-${a.id}`}>Episode</label>
-                    <input id={`ep-${a.id}`} name="last_episode" type="number" min={0} defaultValue={a.last_episode} className="input !w-20 !py-1" />
+                    <input id={`ep-${a.id}`} name="last_episode" type="number" min={0} max={a.total_episodes ?? undefined} defaultValue={a.last_episode} className="input !w-20 !py-1" />
                     <label className="sr-only" htmlFor={`st-${a.id}`}>Status</label>
                     <select id={`st-${a.id}`} name="status" defaultValue={a.status} className="input !w-auto !py-1">
                       {STATUSES.map((s) => <option key={s}>{s}</option>)}
@@ -48,7 +55,12 @@ export default async function AnimePage() {
                   </form>
                   <form action={incrementEpisode}>
                     <input type="hidden" name="id" value={a.id} />
-                    <button className="btn-ghost !py-1 text-xs">Watched next episode</button>
+                    <button
+                      className="btn-ghost !py-1 text-xs disabled:cursor-not-allowed disabled:opacity-50"
+                      disabled={a.total_episodes !== null && a.last_episode >= a.total_episodes}
+                    >
+                      Watched next episode
+                    </button>
                   </form>
                   <ConfirmDelete id={a.id} title={a.title} />
                 </div>

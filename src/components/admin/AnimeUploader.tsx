@@ -1,10 +1,24 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useFormStatus } from "react-dom";
 import { saveAnimeProgress } from "@/actions/anime";
 import type { AnimeMatch, Recognition } from "@/types/anime";
 
 const STATUSES = ["watching", "completed", "paused", "dropped", "planned"];
+
+function Spinner() {
+  return <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-r-transparent" aria-hidden />;
+}
+
+function SaveProgressButton() {
+  const { pending } = useFormStatus();
+  return (
+    <button disabled={pending} className="btn disabled:cursor-wait disabled:opacity-60">
+      {pending ? <><Spinner /> Saving…</> : "Save progress"}
+    </button>
+  );
+}
 
 /** Shrinks big screenshots: faster upload, and keeps requests under hosting body limits. */
 async function downscale(file: File, max = 1280): Promise<File> {
@@ -24,6 +38,7 @@ async function downscale(file: File, max = 1280): Promise<File> {
 
 export function AnimeUploader() {
   const inputRef = useRef<HTMLInputElement>(null);
+  const busyRef = useRef(false);
   const [preview, setPreview] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -39,7 +54,9 @@ export function AnimeUploader() {
   };
 
   const handleFile = useCallback(async (original: File) => {
+    if (busyRef.current) return;
     if (!original.type.startsWith("image/")) return setError("Choose an image file.");
+    busyRef.current = true;
     const file = await downscale(original);
 
     // Put the file in the form's input so it is saved with the entry.
@@ -64,6 +81,7 @@ export function AnimeUploader() {
       setRec({ best: null, alternatives: [], confident: false });
       select(null);
     } finally {
+      busyRef.current = false;
       setBusy(false);
     }
   }, []);
@@ -89,7 +107,7 @@ export function AnimeUploader() {
       <label
         onDragOver={(e) => e.preventDefault()}
         onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) handleFile(f); }}
-        className="flex cursor-pointer flex-col items-center justify-center rounded-md border border-dashed border-line px-4 py-8 text-center text-sm text-ink-soft hover:border-ink focus-within:border-accent"
+        className={`flex flex-col items-center justify-center rounded-md border border-dashed border-line px-4 py-8 text-center text-sm text-ink-soft hover:border-ink focus-within:border-accent ${busy ? "cursor-wait opacity-70" : "cursor-pointer"}`}
       >
         <span className="font-medium text-ink">Drop your last-watched screenshot here</span>
         <span>or click to choose, or paste with Ctrl/Cmd+V</span>
@@ -99,11 +117,12 @@ export function AnimeUploader() {
           name="screenshot"
           accept="image/*"
           className="sr-only"
+          disabled={busy}
           onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }}
         />
       </label>
 
-      {busy && <p role="status" className="mt-4 text-sm text-ink-soft">Identifying the anime…</p>}
+      {busy && <p role="status" className="mt-4 flex items-center gap-2 text-sm text-ink-soft"><Spinner /> Identifying the anime…</p>}
       {error && <p role="alert" className="mt-4 text-sm text-red-600">{error}</p>}
 
       {rec && !busy && (
@@ -125,7 +144,7 @@ export function AnimeUploader() {
             <div className="flex gap-4">
               <div className="w-32">
                 <label htmlFor="a-ep" className="label">Last episode</label>
-                <input id="a-ep" name="last_episode" type="number" min={0} required className="input" value={episode} onChange={(e) => setEpisode(e.target.value)} />
+                <input id="a-ep" name="last_episode" type="number" min={0} max={match?.totalEpisodes ?? undefined} required className="input" value={episode} onChange={(e) => setEpisode(e.target.value)} />
               </div>
               <div>
                 <label htmlFor="a-status" className="label">Status</label>
@@ -148,7 +167,7 @@ export function AnimeUploader() {
               </div>
             )}
 
-            <button className="btn">Save progress</button>
+            <SaveProgressButton />
           </div>
         </div>
       )}
