@@ -17,13 +17,13 @@ export interface AnilistInfo {
   coverUrl: string | null;
 }
 
-async function query(q: string, variables: Record<string, unknown>): Promise<Media | null> {
+async function query(q: string, variables: Record<string, unknown>, fresh = false): Promise<Media | null> {
   try {
     const res = await fetch(ENDPOINT, {
       method: "POST",
       headers: { "Content-Type": "application/json", Accept: "application/json" },
       body: JSON.stringify({ query: q, variables }),
-      next: { revalidate: 86400 },
+      ...(fresh ? { cache: "no-store" as const } : { next: { revalidate: 86400 } }),
     });
     if (!res.ok) return null;
     const json = await res.json();
@@ -41,8 +41,8 @@ const toInfo = (m: Media | null): AnilistInfo | null =>
     coverUrl: m.coverImage.large,
   };
 
-export const anilistById = async (id: number) =>
-  toInfo(await query(`query($id:Int){Media(id:$id,type:ANIME){${FIELDS}}}`, { id }));
+export const anilistById = async (id: number, fresh = false) =>
+  toInfo(await query(`query($id:Int){Media(id:$id,type:ANIME){${FIELDS}}}`, { id }, fresh));
 
 export const anilistSearch = async (search: string) =>
   toInfo(await query(`query($s:String){Media(search:$s,type:ANIME){${FIELDS}}}`, { s: search }));

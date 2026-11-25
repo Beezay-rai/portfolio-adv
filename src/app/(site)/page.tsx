@@ -37,6 +37,7 @@ export default async function HomePage() {
           <div className="mt-10 flex flex-wrap gap-3 animate-slide-up" style={{ animationDelay: '400ms' }}>
             <Link href="/projects" className="btn">See my projects</Link>
             <a href={`mailto:${settings.email}`} className="btn-ghost">Email me</a>
+            <Link href="/admin/login" className="btn-ghost">Login</Link>
           </div>
         </div>
       </section>

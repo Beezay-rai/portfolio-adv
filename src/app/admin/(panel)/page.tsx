@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { resources } from "@/config/resources";
 import { createClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -10,6 +11,15 @@ export default async function DashboardPage() {
       return { ...r, count: count ?? 0 };
     }),
   );
+  const { data, error } =
+    await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+
+  if (
+    error ||
+    data.currentLevel !== "aal2"
+  ) {
+    redirect("/mfa");
+  }
 
   return (
     <div className="animate-fade-in">

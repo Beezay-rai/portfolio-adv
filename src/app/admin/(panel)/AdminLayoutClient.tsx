@@ -111,6 +111,19 @@ export function AdminLayoutClient({ resources, logoutAction, children }: AdminSi
                   Site Settings
                 </Link>
               </li>
+              <li>
+                <Link
+                  href="/admin/mfa"
+                  onClick={() => setSidebarOpen(false)}
+                  className={`relative block rounded-lg px-3 py-2.5 transition-all duration-200 font-medium ${
+                    pathname === "/admin/mfa"
+                      ? "bg-accent/10 text-accent shadow-sm before:absolute before:left-0 before:top-2 before:h-5 before:w-1 before:rounded-r-full before:bg-accent"
+                      : "text-ink-soft hover:bg-white/80 hover:text-ink"
+                  }`}
+                >
+                  MFA Settings
+                </Link>
+              </li>
             </ul>
           </nav>
         </div>
