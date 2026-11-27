@@ -1,7 +1,11 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
+import { useActionState, useEffect, useState, useTransition } from "react";
+import {
+  recoverMfaWithEmailCode,
+  sendMfaRecoveryCode,
+} from "@/actions/auth";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { QRCodeSVG } from "qrcode.react";
@@ -18,6 +22,15 @@ export default function MfaVerificationPage() {
   const [enabled, setEnabled] = useState(false);
   const [verified, setVerified] = useState(false);
   const [checking, setChecking] = useState(true);
+  const [recoveryStarted, setRecoveryStarted] = useState(false);
+  const [recoverySent, setRecoverySent] = useState(false);
+  const [recoveryCode, setRecoveryCode] = useState("");
+  const [recoveryMessage, setRecoveryMessage] = useState("");
+  const [requestPending, startRequest] = useTransition();
+  const [recoveryState, recoveryAction, recoveryPending] = useActionState(
+    recoverMfaWithEmailCode,
+    undefined,
+  );
 
   useEffect(() => {
     async function checkFactors() {
@@ -99,6 +112,16 @@ export default function MfaVerificationPage() {
     } finally {
       setLoading(false);
     }
+  }
+
+  function requestRecoveryCode() {
+    setRecoveryStarted(true);
+    setRecoveryMessage("");
+    startRequest(async () => {
+      const result = await sendMfaRecoveryCode();
+      setRecoverySent(!result.error);
+      setRecoveryMessage(result.error ?? result.message ?? "");
+    });
   }
 
   return (
@@ -209,6 +232,102 @@ export default function MfaVerificationPage() {
             {loading ? "Verifying..." : "Verify & Enable MFA"}
           </button>
         ) : null}
+
+        {!checking && enabled && !qrUri && !verified && (
+          <section className="space-y-3 border-t border-line/50 pt-5">
+            {!recoveryStarted ? (
+              <button
+                type="button"
+                onClick={() => setRecoveryStarted(true)}
+                className="w-full text-sm text-accent underline underline-offset-4"
+              >
+                Lost access to your authenticator?
+              </button>
+            ) : recoveryState?.success ? (
+              <div className="space-y-3">
+                <p className="text-sm text-green-700" role="status">
+                  Your lost authenticator was removed. Sign in again to set up a new one.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => router.replace("/admin/login")}
+                  className="btn w-full"
+                >
+                  Return to sign in
+                </button>
+              </div>
+            ) : (
+              <>
+                <p className="text-sm text-ink-soft">
+                  Verify your account email to remove the lost authenticator. You will need to sign in again afterward.
+                </p>
+                {!recoverySent ? (
+                  <button
+                    type="button"
+                    onClick={requestRecoveryCode}
+                    disabled={requestPending}
+                    className="btn w-full disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {requestPending ? "Sending code…" : "Send email verification code"}
+                  </button>
+                ) : (
+                  <>
+                    <p className="text-sm text-ink-soft" role="status">
+                      {recoveryMessage}
+                    </p>
+                    <form action={recoveryAction} className="space-y-3">
+                      <label htmlFor="recovery-code" className="label">
+                        Email verification code
+                      </label>
+                      <input
+                        id="recovery-code"
+                        name="code"
+                        type="text"
+                        inputMode="numeric"
+                        autoComplete="one-time-code"
+                        maxLength={6}
+                        required
+                        pattern="[0-9]{6}"
+                        value={recoveryCode}
+                        onChange={(event) =>
+                          setRecoveryCode(event.target.value.replace(/\D/g, "").slice(0, 6))
+                        }
+                        disabled={recoveryPending}
+                        placeholder="123456"
+                        className="input text-center tracking-widest disabled:cursor-not-allowed disabled:opacity-60"
+                      />
+                      {recoveryState?.error && (
+                        <p className="text-sm text-red-600" role="alert">
+                          {recoveryState.error}
+                        </p>
+                      )}
+                      <button
+                        type="submit"
+                        disabled={recoveryPending || recoveryCode.length !== 6}
+                        className="btn w-full disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {recoveryPending ? "Verifying…" : "Verify email and recover"}
+                      </button>
+                    </form>
+                    <button
+                      type="button"
+                      onClick={requestRecoveryCode}
+                      disabled={requestPending}
+                      className="w-full text-sm text-accent underline underline-offset-4 disabled:opacity-60"
+                    >
+                      {requestPending ? "Sending code…" : "Resend code"}
+                    </button>
+                  </>
+                )}
+                {recoveryMessage && !recoverySent && (
+                  <p className="text-sm text-red-600" role="alert">
+                    {recoveryMessage}
+                  </p>
+                )}
+              </>
+            )}
+          </section>
+        )}
 
       </div>
     </main>

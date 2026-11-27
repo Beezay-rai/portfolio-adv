@@ -6,9 +6,11 @@ A public portfolio site and a private admin panel (`/admin`) to manage **work ex
 1. Create a project at supabase.com.
 2. SQL Editor → paste and run `supabase/schema.sql` (tables, RLS policies, `portfolio` storage bucket).
 3. Authentication → Users → **Add user** (your email + password). Then Authentication → Sign In / Providers → **disable "Allow new users to sign up"** so only you can edit.
-4. `cp .env.example .env.local` and fill in Project URL + anon key (Project Settings → API).
+4. `cp .env.example .env.local` and fill in Project URL + anon key (Project Settings → API). Add the service-role key for server-side MFA recovery; never expose it with a `NEXT_PUBLIC_` prefix.
 5. `npm install && npm run dev`
 6. Visit `/admin`, sign in, add content. Edit your name/bio/links in `src/config/site.ts`.
+
+For lost-authenticator recovery, configure the Supabase Auth email template to send a numeric verification code by including `{{ .Token }}` in the email template (instead of only `{{ .ConfirmationURL }}`). After email verification, recovery removes the old authenticator and signs the user out; sign in again to enroll a replacement.
 
 ## Structure
 ```
